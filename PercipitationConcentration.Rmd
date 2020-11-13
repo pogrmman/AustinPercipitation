@@ -29,6 +29,8 @@ Time to get started. The preliminaries:
 library(httr)
 library(dplyr)
 library(jsonlite)
+library(tidyr)
+library(R.cache)
 
 authToken <- paste(readLines("authToken.txt"), collapse = "")
 ```
@@ -39,7 +41,13 @@ request <- GET(baseUrl, query=list(extent="30.0172,-97.9931,30.5172,-97.4931",da
 json <- content(request, as="text")
 if(validate(json))
   json <- fromJSON(json)
-stations <- json$results
-stations <- stations %>% filter(datacoverage > .8) %>% mutate(maxdate = as.Date(maxdate), mindate = as.Date(mindate)) %>%
-  mutate(length = maxdate - mindate) %>% filter(length > 3650)
+  stations <- json$results %>% filter(datacoverage > .8) %>% mutate(maxdate = as.Date(maxdate), mindate = as.Date(mindate)) %>%
+    mutate(length = maxdate - mindate) %>% filter(length > 3650) %>% select(-length) %>% 
+    mutate(startYear = format(mindate, "%Y"), endYear = format(maxdate, "%Y")) %>% select(-elevation, -elevationUnit)
+```
+Fetch percipitation data for the stations for the years 1895-2015.
+The this code lies in a separate document, to keep this one clutter-free, but you can see it over at the Github repo (add link).
+```{r}
+source("./getData.R")
+getAllData(stations)
 ```
