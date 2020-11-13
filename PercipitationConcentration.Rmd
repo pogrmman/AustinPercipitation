@@ -23,3 +23,23 @@ But I've got a few more things I'm also interested in investigating:
 - Has the concentration of percipitation in each season changed?
 - Based on evapotranspiration, does Austin have a more pronounced dry/wet seasonality now?
 
+Time to get started. The preliminaries:
+```{r}
+# Libraries
+library(httr)
+library(dplyr)
+library(jsonlite)
+
+authToken <- paste(readLines("authToken.txt"), collapse = "")
+```
+Find climate stations within .25 degrees of Austin with good data coverage and at least 10 years of data:
+```{r}
+baseUrl <- "https://www.ncdc.noaa.gov/cdo-web/api/v2/stations"
+request <- GET(baseUrl, query=list(extent="30.0172,-97.9931,30.5172,-97.4931",datasetid="GHCND",limit="1000"),add_headers(token=authToken))
+json <- content(request, as="text")
+if(validate(json))
+  json <- fromJSON(json)
+stations <- json$results
+stations <- stations %>% filter(datacoverage > .8) %>% mutate(maxdate = as.Date(maxdate), mindate = as.Date(mindate)) %>%
+  mutate(length = maxdate - mindate) %>% filter(length > 3650)
+```
