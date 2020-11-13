@@ -1,0 +1,25 @@
+---
+title: "Percipitation Concentration in Austin"
+author: "Alexander Mohn"
+date: "November 13, 2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Having grown up in Austin, TX, I've anecdotally noted that the percipitation patterns seem to be changing here since I was a little kid.
+Especially since the drought of 2009-2011, it's seemed to me that our summers have been getting drier and that we're alternating more between drought conditions and flooding.
+When I was young, it seemed like we had afternoon thunderstorms on a good number of days during the summer and it seemed like we always had a modest amount of moisture.
+Now, it seems like summers have become bone-dry and the rain we do get comes in the form of torrential storms that drop a huge amount of rain in very little time.
+Because memory is not super reliable, I decided to investigate this using data from NOAA.
+
+I'm primarily going to focus on the following two questions:
+
+1. Has the concentration of percipitation increased in Austin? In other words, has the amount of percipitation that falls on a rainy day increased?
+2. Has the seasonality of percipitation changed in Austin? Are some seasons wetter/drier than they used to be?
+
+But I've got a few more things I'm also interested in investigating:
+
+- Has the concentration of percipitation in each season changed?
+- Based on evapotranspiration, does Austin have a more pronounced dry/wet seasonality now?
+
