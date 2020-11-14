@@ -51,14 +51,16 @@ The this code lies in a separate document, to keep this one clutter-free, but yo
 ```{r}
 source("./getData.R")
 getAllData(stations)
+allData <- allData %>% separate(date, into=c("year","month","day"), sep="-") %>% mutate(year=as.numeric(year),
+                                                                                        month=as.numeric(month),
+                                                                                        day=as.numeric(day))k
 ```
 I'll start by looking at heavy rainfall days with rainfall in the 90th percentile of all rainfall days (more than 251 mm of rain).
 ```{r}
 # Get all days with rainfall >= trace
 rainyDays <- allData %>% filter(value>0|measurement=="T")
 deciles <- quantile(rainyDays$value,c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
-heavyRainDays <- rainyDays %>% filter(value>deciles["90%"]) %>% separate(date, into=c("year","month","day"), sep="-") %>% 
-  mutate(year=as.numeric(year), month=as.numeric(month), day=as.numeric(day)) %>% 
+heavyRainDays <- rainyDays %>% filter(value>deciles["90%"]) %>% 
   group_by(year,station,.drop=TRUE) %>% summarize(HeavyRainDays=n()) %>% ungroup() %>% group_by(year) %>% summarize(HeavyRainDays=mean(HeavyRainDays))
 heavyRainDays %>% ggplot(aes(year,HeavyRainDays)) + geom_point() + geom_smooth(method="lm") + 
   labs(title = "Number of Heavy Rain Days per Year",
@@ -72,8 +74,7 @@ There's not much, if any change in terms of the number of days per year in the 9
 However, if you look at extremely heavy rainfall days (99th percentile -- 775 mm/day), there is a substantial (though non-significant) increase, although the data are extremely noisy and the majority of its variability is not explained by the line of best fit.
 ```{r}
 deciles <- quantile(rainyDays$value, c(.9,.95,.99))
-extremeRainDays <- rainyDays %>% filter(value>deciles["99%"]) %>% separate(date, into=c("year","month","day"), sep="-") %>%
-  mutate(year=as.numeric(year), month=as.numeric(month), day=as.numeric(day)) %>%
+extremeRainDays <- rainyDays %>% filter(value>deciles["99%"]) %>%
   group_by(year,station,.drop=TRUE) %>% summarize(ExtremeRainDays=n()) %>% ungroup() %>% group_by(year) %>% 
   summarize(ExtremeRainDays = mean(ExtremeRainDays))
 extremeRainDays %>% ggplot(aes(year,ExtremeRainDays)) + geom_point() + geom_smooth(method="lm") +
@@ -89,4 +90,26 @@ print(summary(fit))
 print(paste("Mean:", as.numeric(mean(rainyDays$value)), "mm"))
 print(paste("Median:", as.numeric(median(rainyDays$value)), "mm"))
 print(paste("Standard Deviation:", as.numeric(sd(rainyDays$value)), "mm"))
+decadalRainyDays <- rainyDays %>% mutate(decade = paste(as.character(floor(year/10)), "0s", sep="")) %>% 
+  group_by(decade, year, station) %>%
+  summarize(RainyDays = n(), MeanRainyDay = mean(value), MedianRainyDay = median(value), 
+            MaxRainyDay = max(value), StdDevRainyDay = sd(value)) %>% ungroup() %>%
+  group_by(decade, station) %>% summarize(RainyDays = mean(RainyDays), MeanRainyDay = mean(MeanRainyDay),
+                                          MedianRainyDay = mean(MedianRainyDay), MaxRainyDay = max(MaxRainyDay),
+                                          StdDevRainyDay = mean(StdDevRainyDay)) %>% ungroup() %>% group_by(decade) %>%
+  summarize(RainyDays = mean(RainyDays), MeanRainyDay = mean(MeanRainyDay), MedianRainyDay = mean(MedianRainyDay),
+            MaxRainyDay = max(MaxRainyDay), StdDevRainyDay = mean(StdDevRainyDay))
+decadalRainyDays %>% gather("Type", "Value", -decade, -RainyDays, -MaxRainyDay) %>%
+  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") + 
+  labs(title = "Mean, Median, and Std. Deviation of Rainy Days by Decade",
+       x = "Decade",
+       y = "Millimeters per Rainy Day") +
+  scale_fill_discrete(name="Measurement", labels=c("Mean", "Median", "Standard Deviation"))
+decadalRainyDays %>% gather("Type", "Value", -decade, -MaxRainyDay, -StdDevRainyDay, -MedianRainyDay) %>%
+  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") +
+  labs(title = "Average Number of Rainy Days per Year and Mean Rainy Day",
+       x = "Decade",
+       y = "") +
+  scale_fill_discrete(name="Measure", labels=c("Mean Rainfall of Rainy Day (mm)", "Number of Rainy Days per Year"))
+decadalRainyDays %>% 
 ```
