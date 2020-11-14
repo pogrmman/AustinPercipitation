@@ -84,7 +84,7 @@ fit <- lm(extremeRainDays$ExtremeRainDays ~ extremeRainDays$year)
 print(deciles)
 print(summary(fit))
 ```
- 
+
 ```{r}
 print(paste("Mean:", as.numeric(mean(rainyDays$value)), "mm"))
 print(paste("Median:", as.numeric(median(rainyDays$value)), "mm"))
