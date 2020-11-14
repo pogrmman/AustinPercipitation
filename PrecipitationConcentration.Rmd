@@ -31,6 +31,7 @@ library(dplyr)
 library(jsonlite)
 library(tidyr)
 library(R.cache)
+library(ineq)
 
 authToken <- paste(readLines("authToken.txt"), collapse = "")
 ```
@@ -46,8 +47,46 @@ if(validate(json))
     mutate(startYear = format(mindate, "%Y"), endYear = format(maxdate, "%Y")) %>% select(-elevation, -elevationUnit)
 ```
 Fetch percipitation data for the stations for the years 1895-2015.
-The this code lies in a separate document, to keep this one clutter-free, but you can see it over at the [github repo.](https://github.com/pogrmman/AustinPrecipitation)
+The this code lies in a separate document, to keep this one clutter-free, but you can see it over at the [github repo.](https://github.com/pogrmman/AustinPercipitation)
 ```{r}
 source("./getData.R")
 getAllData(stations)
+```
+I'll start by looking at heavy rainfall days with rainfall in the 90th percentile of all rainfall days (more than 251 mm of rain).
+```{r}
+# Get all days with rainfall >= trace
+rainyDays <- allData %>% filter(value>0|measurement=="T")
+deciles <- quantile(rainyDays$value,c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
+heavyRainDays <- rainyDays %>% filter(value>deciles["90%"]) %>% separate(date, into=c("year","month","day"), sep="-") %>% 
+  mutate(year=as.numeric(year), month=as.numeric(month), day=as.numeric(day)) %>% 
+  group_by(year,station,.drop=TRUE) %>% summarize(HeavyRainDays=n()) %>% ungroup() %>% group_by(year) %>% summarize(HeavyRainDays=mean(HeavyRainDays))
+heavyRainDays %>% ggplot(aes(year,HeavyRainDays)) + geom_point() + geom_smooth(method="lm") + 
+  labs(title = "Number of Heavy Rain Days per Year",
+       x = "Year",
+       y = "Number of Heavy Rain Days")
+fit <- lm(heavyRainDays$HeavyRainDays ~ heavyRainDays$year)
+print(deciles)
+print(summary(fit))
+```
+There's not much, if any change in terms of the number of days per year in the 90th percentile for rainfall.
+However, if you look at extremely heavy rainfall days (99th percentile -- 775 mm/day), there is a substantial (though non-significant) increase, although the data are extremely noisy and the majority of its variability is not explained by the line of best fit.
+```{r}
+deciles <- quantile(rainyDays$value, c(.9,.95,.99))
+extremeRainDays <- rainyDays %>% filter(value>deciles["99%"]) %>% separate(date, into=c("year","month","day"), sep="-") %>%
+  mutate(year=as.numeric(year), month=as.numeric(month), day=as.numeric(day)) %>%
+  group_by(year,station,.drop=TRUE) %>% summarize(ExtremeRainDays=n()) %>% ungroup() %>% group_by(year) %>% 
+  summarize(ExtremeRainDays = mean(ExtremeRainDays))
+extremeRainDays %>% ggplot(aes(year,ExtremeRainDays)) + geom_point() + geom_smooth(method="lm") +
+  labs(title = "Extreme Rainfall Days per Year",
+       x = "Year",
+       y = "Number of Extreme Rainfall Days")
+fit <- lm(extremeRainDays$ExtremeRainDays ~ extremeRainDays$year)
+print(deciles)
+print(summary(fit))
+```
+
+```{r}
+print(paste("Mean:", as.numeric(mean(rainyDays$value)), "mm"))
+print(paste("Median:", as.numeric(median(rainyDays$value)), "mm"))
+print(paste("Standard Deviation:", as.numeric(sd(rainyDays$value)), "mm"))
 ```
