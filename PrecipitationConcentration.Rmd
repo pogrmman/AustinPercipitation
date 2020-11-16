@@ -62,7 +62,7 @@ rainyDays <- allData %>% filter(value>0|measurement=="T")
 deciles <- quantile(rainyDays$value,c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
 heavyRainDays <- rainyDays %>% filter(value>deciles["90%"]) %>% 
   group_by(year,station,.drop=TRUE) %>% summarize(HeavyRainDays=n()) %>% ungroup() %>% group_by(year) %>% summarize(HeavyRainDays=mean(HeavyRainDays))
-heavyRainDays %>% ggplot(aes(year,HeavyRainDays)) + geom_point() + geom_smooth(method="lm") + 
+heavyRainDays %>% ggplot(aes(year,HeavyRainDays)) + geom_point() + geom_smooth(method="lm") + theme_bw() +
   labs(title = "Number of Heavy Rain Days per Year",
        x = "Year",
        y = "Number of Heavy Rain Days")
@@ -77,7 +77,7 @@ deciles <- quantile(rainyDays$value, c(.9,.95,.99))
 extremeRainDays <- rainyDays %>% filter(value>deciles["99%"]) %>%
   group_by(year,station,.drop=TRUE) %>% summarize(ExtremeRainDays=n()) %>% ungroup() %>% group_by(year) %>% 
   summarize(ExtremeRainDays = mean(ExtremeRainDays))
-extremeRainDays %>% ggplot(aes(year,ExtremeRainDays)) + geom_point() + geom_smooth(method="lm") +
+extremeRainDays %>% ggplot(aes(year,ExtremeRainDays)) + geom_point() + geom_smooth(method="lm") + theme_bw() +
   labs(title = "Extreme Rainfall Days per Year",
        x = "Year",
        y = "Number of Extreme Rainfall Days")
@@ -100,16 +100,26 @@ decadalRainyDays <- rainyDays %>% mutate(decade = paste(as.character(floor(year/
   summarize(RainyDays = mean(RainyDays), MeanRainyDay = mean(MeanRainyDay), MedianRainyDay = mean(MedianRainyDay),
             MaxRainyDay = max(MaxRainyDay), StdDevRainyDay = mean(StdDevRainyDay))
 decadalRainyDays %>% gather("Type", "Value", -decade, -RainyDays, -MaxRainyDay) %>%
-  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") + 
+  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") + theme_bw() +
   labs(title = "Mean, Median, and Std. Deviation of Rainy Days by Decade",
        x = "Decade",
        y = "Millimeters per Rainy Day") +
   scale_fill_discrete(name="Measurement", labels=c("Mean", "Median", "Standard Deviation"))
 decadalRainyDays %>% gather("Type", "Value", -decade, -MaxRainyDay, -StdDevRainyDay, -MedianRainyDay) %>%
-  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") +
+  ggplot(aes(x=decade, y=Value, fill=Type)) + geom_col(position="dodge") + theme_bw() +
   labs(title = "Average Number of Rainy Days per Year and Mean Rainy Day",
        x = "Decade",
        y = "") +
   scale_fill_discrete(name="Measure", labels=c("Mean Rainfall of Rainy Day (mm)", "Number of Rainy Days per Year"))
-decadalRainyDays %>% 
+```
+
+```{r}
+giniCoeff <- rainyDays %>% filter(value>0) %>% group_by(year, station) %>% summarize(GiniCoeff=Gini(value),
+                                                                                     TotalRainfall=sum(value))
+fit <- lm(giniCoeff$GiniCoeff ~ giniCoeff$year)
+giniCoeff %>% ggplot(aes(year, GiniCoeff)) + geom_point() + geom_smooth(method="lm") + theme_bw() +
+  labs(title = "Rainfall Concentraion by Year",
+       x = "Year",
+       y = "Gini Coefficient")
+print(summary(fit))
 ```
